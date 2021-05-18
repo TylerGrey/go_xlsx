@@ -9,10 +9,8 @@ import (
 
 const (
 	DefaultSheetName = "Sheet1"
-
-	SignOmit = "-"
-
-	TagColumnName = "col_name"
+	SignOmit         = "-"
+	TagColumnName    = "col_name"
 )
 
 type Excel struct {
@@ -20,22 +18,17 @@ type Excel struct {
 	startRow   int
 	datasource interface{}
 	columns    []ColumnType
-	autoMerge  bool
 }
 
 type ColumnType struct {
-	ID      string
-	Title   string
-	ColSpan int32
-	Render  *func()
+	ID    string
+	Title string
 }
 
 func NewExcel() *Excel {
-	// TODO fill all fields
 	return &Excel{
-		sheet:     DefaultSheetName,
-		startRow:  1,
-		autoMerge: false,
+		sheet:    DefaultSheetName,
+		startRow: 1,
 	}
 }
 
@@ -64,44 +57,52 @@ func (e *Excel) Render() (*excelize.File, error) {
 		return nil, errors.New("invalid datasource")
 	}
 
-	f := File{excelize.NewFile()}
+	f := excelize.NewFile()
 	f.SetSheetName(DefaultSheetName, e.sheet)
+	sw, err := f.NewStreamWriter(e.sheet)
+
+	swWrapper := StreamWriter{sw}
+	if err != nil {
+		return nil, err
+	}
 
 	if e.columns == nil {
 		e.columns = e.makeDefaultColumns()
 	}
-	if err := f.setHeader(e); err != nil {
+	if err := swWrapper.setHeader(e); err != nil {
 		return nil, err
 	}
 
-	if err := f.setBody(e); err != nil {
+	if err := swWrapper.setBody(e); err != nil {
 		return nil, err
 	}
 
-	return f.File, nil
+	if err = swWrapper.Flush(); err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
-	columns, tags := e.printableColumns()
+	fields, tags := e.targetFieldsAndTags()
 
-	for i := 0; i < len(columns); i++ {
-		title := columns[i]
+	for i := 0; i < len(fields); i++ {
+		title := fields[i]
 		if len(tags[i]) > 0 {
 			title = tags[i]
 		}
 
 		columnTypes = append(columnTypes, ColumnType{
-			ID:      columns[i],
-			Title:   title,
-			ColSpan: 0,
-			Render:  nil,
+			ID:    fields[i],
+			Title: title,
 		})
 	}
 
 	return
 }
 
-func (e *Excel) printableColumns() (fields []string, tags []string) {
+func (e *Excel) targetFieldsAndTags() (fields []string, tags []string) {
 	elem := reflect.TypeOf(e.datasource).Elem()
 
 	for i := 0; i < elem.NumField(); i++ {
@@ -117,39 +118,36 @@ func (e *Excel) printableColumns() (fields []string, tags []string) {
 	return
 }
 
-type File struct {
-	*excelize.File
+type StreamWriter struct {
+	*excelize.StreamWriter
 }
 
-func (f *File) setHeader(e *Excel) error {
-	for i := 1; i <= len(e.columns); i++ {
-		colName, _ := excelize.ColumnNumberToName(i)
-		axis := fmt.Sprintf("%s%d", colName, e.startRow)
+func (f *StreamWriter) setHeader(e *Excel) error {
+	var headers []interface{}
+	for _, column := range e.columns {
+		headers = append(headers, column.Title)
+	}
 
-		if err := f.SetCellValue(e.sheet, axis, e.columns[i-1].Title); err != nil {
-			return err
-		}
+	if err := f.SetRow(fmt.Sprintf("A%d", e.startRow), headers); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (f *File) setBody(e *Excel) error {
-	fields, _ := e.printableColumns()
+func (f *StreamWriter) setBody(e *Excel) error {
+	fields, _ := e.targetFieldsAndTags()
 
 	valueOf := reflect.ValueOf(e.datasource)
-	for i := 1; i <= valueOf.Len(); i++ {
-		axisRow := (i + 1) + e.startRow
+	for i := 0; i < valueOf.Len(); i++ {
+		var rows []interface{}
 
 		for j := 0; j < len(fields); j++ {
-			axisName, _ := excelize.ColumnNumberToName(j)
-			fmt.Println(fmt.Sprintf("%s%d", axisName, axisRow))
+			rows = append(rows, valueOf.Index(i).FieldByName(fields[j]))
+		}
 
-			field := valueOf.Index(i - 1).FieldByName(fields[j])
-			fmt.Println("field", field)
-			if err := f.SetCellValue(e.sheet, fmt.Sprintf("%s%d", axisName, axisRow), field); err != nil {
-				return err
-			}
+		if err := f.SetRow(fmt.Sprintf("A%d", (i+1)+e.startRow), rows); err != nil {
+			return err
 		}
 	}
 
