@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	"reflect"
+	"time"
 )
 
 const (
@@ -21,7 +22,7 @@ type Excel struct {
 }
 
 type ColumnType struct {
-	ID    string
+	Field string
 	Title string
 }
 
@@ -77,14 +78,17 @@ func (e *Excel) Render() (*excelize.File, error) {
 		return nil, err
 	}
 
+	now := time.Now()
 	if err = swWrapper.Flush(); err != nil {
 		return nil, err
 	}
+	fmt.Println("Flush", time.Since(now))
 
 	return f, nil
 }
 
 func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
+	now := time.Now()
 	fields, tags := e.targetFieldsAndTags()
 
 	for i := 0; i < len(fields); i++ {
@@ -94,15 +98,18 @@ func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
 		}
 
 		columnTypes = append(columnTypes, ColumnType{
-			ID:    fields[i],
+			Field: fields[i],
 			Title: title,
 		})
 	}
 
+	fmt.Println("makeDefaultColumns", time.Since(now))
 	return
 }
 
 func (e *Excel) targetFieldsAndTags() (fields []string, tags []string) {
+	now := time.Now()
+	// TODO ordering 적용
 	elem := reflect.TypeOf(e.datasource).Elem()
 
 	for i := 0; i < elem.NumField(); i++ {
@@ -115,6 +122,7 @@ func (e *Excel) targetFieldsAndTags() (fields []string, tags []string) {
 		}
 	}
 
+	fmt.Println("targetFieldsAndTags", time.Since(now))
 	return
 }
 
@@ -123,6 +131,7 @@ type StreamWriter struct {
 }
 
 func (f *StreamWriter) setHeader(e *Excel) error {
+	now := time.Now()
 	var headers []interface{}
 	for _, column := range e.columns {
 		headers = append(headers, column.Title)
@@ -132,18 +141,18 @@ func (f *StreamWriter) setHeader(e *Excel) error {
 		return err
 	}
 
+	fmt.Println("setHeader", time.Since(now))
 	return nil
 }
 
 func (f *StreamWriter) setBody(e *Excel) error {
-	fields, _ := e.targetFieldsAndTags()
-
+	now := time.Now()
 	valueOf := reflect.ValueOf(e.datasource)
 	for i := 0; i < valueOf.Len(); i++ {
 		var rows []interface{}
 
-		for j := 0; j < len(fields); j++ {
-			rows = append(rows, valueOf.Index(i).FieldByName(fields[j]))
+		for j := 0; j < len(e.columns); j++ {
+			rows = append(rows, valueOf.Index(i).FieldByName(e.columns[j].Field))
 		}
 
 		if err := f.SetRow(fmt.Sprintf("A%d", (i+1)+e.startRow), rows); err != nil {
@@ -151,5 +160,6 @@ func (f *StreamWriter) setBody(e *Excel) error {
 		}
 	}
 
+	fmt.Println("setBody", time.Since(now))
 	return nil
 }

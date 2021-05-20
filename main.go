@@ -12,16 +12,21 @@ import (
 
 func main() {
 	// File
-	now := time.Now()
-	PrepareAndReturnExcel().SaveAs("Test.xlsx")
-	fmt.Println(time.Since(now))
+	//f := PrepareAndReturnExcel()
+	//
+	//now := time.Now()
+	//if err := f.SaveAs("Test.xlsx"); err != nil {
+	//	return
+	//}
+	//fmt.Println("SaveAs", time.Since(now))
 
 	// HTTP
-	//http.HandleFunc("/xlsx", downloadExcel)
-	//http.ListenAndServe(":3000", nil)
+	http.HandleFunc("/xlsx", downloadExcel)
+	http.ListenAndServe(":3000", nil)
 }
 
 func PrepareAndReturnExcel() *excelize.File {
+	now := time.Now()
 	var datasource []utils.UserInfo
 	for i := 0; i < 1_000_000; i++ {
 		datasource = append(datasource, utils.UserInfo{
@@ -45,6 +50,7 @@ func PrepareAndReturnExcel() *excelize.File {
 		//	J: "J1",
 		//})
 	}
+	fmt.Println("Generate datasource", time.Since(now))
 
 	f, _ := utils.
 		NewExcel().
@@ -57,7 +63,6 @@ func PrepareAndReturnExcel() *excelize.File {
 }
 
 func downloadExcel(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
 	// Get the Excel file with the user input data
 	file := PrepareAndReturnExcel()
 
@@ -67,6 +72,8 @@ func downloadExcel(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("File-Name", "userInputData.xlsx")
 	w.Header().Set("Content-Transfer-Encoding", "binary")
 	w.Header().Set("Expires", "0")
+
+	now := time.Now()
 	file.Write(w)
-	fmt.Println(time.Since(now))
+	fmt.Println("File write", time.Since(now))
 }
