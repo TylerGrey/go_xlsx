@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
 	"reflect"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -12,18 +14,25 @@ const (
 	DefaultSheetName = "Sheet1"
 	SignOmit         = "-"
 	TagColumnName    = "col_name"
+	TagColumnOrder   = "col_order"
 )
+
+type ColumnType struct {
+	Field string
+	Title string
+}
+
+type target struct {
+	field string
+	tag   string
+	order int
+}
 
 type Excel struct {
 	sheet      string
 	startRow   int
 	datasource interface{}
 	columns    []ColumnType
-}
-
-type ColumnType struct {
-	Field string
-	Title string
 }
 
 func NewExcel() *Excel {
@@ -62,7 +71,7 @@ func (e *Excel) Render() (*excelize.File, error) {
 	f.SetSheetName(DefaultSheetName, e.sheet)
 	sw, err := f.NewStreamWriter(e.sheet)
 
-	swWrapper := StreamWriter{sw}
+	swWrapper := streamWriter{sw}
 	if err != nil {
 		return nil, err
 	}
@@ -79,59 +88,74 @@ func (e *Excel) Render() (*excelize.File, error) {
 	}
 
 	now := time.Now()
+	defer timeTrack(now, "Flush")
 	if err = swWrapper.Flush(); err != nil {
 		return nil, err
 	}
-	fmt.Println("Flush", time.Since(now))
 
 	return f, nil
 }
 
 func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
 	now := time.Now()
-	fields, tags := e.targetFieldsAndTags()
+	defer timeTrack(now, "makeDefaultColumns")
 
-	for i := 0; i < len(fields); i++ {
-		title := fields[i]
-		if len(tags[i]) > 0 {
-			title = tags[i]
+	targets := e.targetFieldsAndTags()
+
+	for i := 0; i < len(targets); i++ {
+		title := targets[i].field
+		if len(targets[i].tag) > 0 {
+			title = targets[i].tag
 		}
 
 		columnTypes = append(columnTypes, ColumnType{
-			Field: fields[i],
+			Field: targets[i].field,
 			Title: title,
 		})
 	}
 
-	fmt.Println("makeDefaultColumns", time.Since(now))
 	return
 }
 
-func (e *Excel) targetFieldsAndTags() (fields []string, tags []string) {
+func (e *Excel) targetFieldsAndTags() (targets []target) {
 	now := time.Now()
-	// TODO ordering 적용
+	defer timeTrack(now, "targetFieldsAndTags")
+
 	elem := reflect.TypeOf(e.datasource).Elem()
 
 	for i := 0; i < elem.NumField(); i++ {
 		field := elem.Field(i)
 		tag := field.Tag.Get(TagColumnName)
 
+		order, err := strconv.Atoi(field.Tag.Get(TagColumnOrder))
+		if err != nil {
+			order = elem.NumField()
+		}
+
 		if tag != SignOmit {
-			fields = append(fields, field.Name)
-			tags = append(tags, tag)
+			targets = append(targets, target{
+				field: field.Name,
+				tag:   tag,
+				order: order,
+			})
 		}
 	}
 
-	fmt.Println("targetFieldsAndTags", time.Since(now))
+	sort.Slice(targets, func(i, j int) bool {
+		return targets[i].order < targets[j].order
+	})
+
 	return
 }
 
-type StreamWriter struct {
+type streamWriter struct {
 	*excelize.StreamWriter
 }
 
-func (f *StreamWriter) setHeader(e *Excel) error {
+func (f *streamWriter) setHeader(e *Excel) error {
 	now := time.Now()
+	defer timeTrack(now, "setHeader")
+
 	var headers []interface{}
 	for _, column := range e.columns {
 		headers = append(headers, column.Title)
@@ -141,12 +165,13 @@ func (f *StreamWriter) setHeader(e *Excel) error {
 		return err
 	}
 
-	fmt.Println("setHeader", time.Since(now))
 	return nil
 }
 
-func (f *StreamWriter) setBody(e *Excel) error {
+func (f *streamWriter) setBody(e *Excel) error {
 	now := time.Now()
+	defer timeTrack(now, "setBody")
+
 	valueOf := reflect.ValueOf(e.datasource)
 	for i := 0; i < valueOf.Len(); i++ {
 		var rows []interface{}
@@ -160,6 +185,10 @@ func (f *StreamWriter) setBody(e *Excel) error {
 		}
 	}
 
-	fmt.Println("setBody", time.Since(now))
 	return nil
+}
+
+func timeTrack(start time.Time, method string) {
+	elapsed := time.Since(start)
+	fmt.Printf("%s %s\n", method, elapsed)
 }

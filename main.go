@@ -12,23 +12,23 @@ import (
 
 func main() {
 	// File
-	//f := PrepareAndReturnExcel()
-	//
-	//now := time.Now()
-	//if err := f.SaveAs("Test.xlsx"); err != nil {
-	//	return
-	//}
-	//fmt.Println("SaveAs", time.Since(now))
+	f := PrepareAndReturnExcel()
+
+	now := time.Now()
+	if err := f.SaveAs("Test.xlsx"); err != nil {
+		return
+	}
+	fmt.Println("SaveAs", time.Since(now))
 
 	// HTTP
-	http.HandleFunc("/xlsx", downloadExcel)
-	http.ListenAndServe(":3000", nil)
+	//http.HandleFunc("/xlsx", downloadExcel)
+	//http.ListenAndServe(":3000", nil)
 }
 
 func PrepareAndReturnExcel() *excelize.File {
 	now := time.Now()
 	var datasource []utils.UserInfo
-	for i := 0; i < 1_000_000; i++ {
+	for i := 0; i < 1_000; i++ {
 		datasource = append(datasource, utils.UserInfo{
 			ID:             strconv.Itoa(i),
 			Name:           fmt.Sprintf("Name%d", i),
@@ -37,18 +37,6 @@ func PrepareAndReturnExcel() *excelize.File {
 			TeamName:       fmt.Sprintf("Team %d", rand.Int()),
 			CompanyEmail:   fmt.Sprintf("%d@gmail.com", rand.Int()),
 		})
-		//datasource = append(datasource, utils.TestType{
-		//	A: "A1",
-		//	B: "B1",
-		//	C: "C1",
-		//	D: "D1",
-		//	E: "E1",
-		//	F: "F1",
-		//	G: "G1",
-		//	H: "H1",
-		//	I: "I1",
-		//	J: "J1",
-		//})
 	}
 	fmt.Println("Generate datasource", time.Since(now))
 
