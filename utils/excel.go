@@ -191,6 +191,22 @@ func (e *Excel) RenderAutoMerging() (*excelize.File, error) {
 	}
 
 	// body
+	valueOf := reflect.ValueOf(e.datasource)
+	for i := 0; i < valueOf.Len(); i++ {
+		for j, column := range leafColumns {
+			columnName, _ := excelize.ColumnNumberToName(j + 1)
+
+			value := valueOf.Index(i).FieldByName(column.Field).Interface()
+			if column.Render != nil {
+				value = column.Render(value)
+			}
+
+			err := f.SetCellValue(e.sheet, fmt.Sprintf("%s%d", columnName, e.startRow+headerHeight+i+1), value)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	return f, nil
 }

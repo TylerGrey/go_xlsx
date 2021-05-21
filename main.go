@@ -75,111 +75,98 @@ func downloadExcel(w http.ResponseWriter, r *http.Request) {
 func PrepareUncommonCase() *excelize.File {
 	var datasource []utils.SalesStatisticalAnalysisItem
 
-	data, _ := os.Open("taxi.json")
+	data, _ := os.Open("driver.json")
 
 	byteJson, _ := ioutil.ReadAll(data)
 	json.Unmarshal(byteJson, &datasource)
 
-	//columns := []utils.ColumnType{
-	//	{
-	//		Field: "BusinessID",
-	//		Title: "사업자명",
-	//	},
-	//	{
-	//		Field: "Name",
-	//		Title: "기사",
-	//	},
-	//	{
-	//		Field: "Name",
-	//		Title: "영업구분",
-	//	},
-	//	{
-	//		Title: "합계",
-	//		Children: []utils.ColumnType{
-	//			{
-	//				Field: "TotalSalesAmount",
-	//				Title: "금액",
-	//				Render: func(v interface{}) interface{} {
-	//					price := v.(string)
-	//					return fmt.Sprintf("%s 원", price)
-	//				},
-	//			},
-	//			{
-	//				Field: "TotalSalesCount",
-	//				Title: "건수",
-	//			},
-	//		},
-	//	},
-	//	{
-	//		Title: "20년 12월",
-	//		Children: []utils.ColumnType{
-	//			{
-	//				Field: "SalesAmount1",
-	//				Title: "금액",
-	//				Render: func(v interface{}) interface{} {
-	//					price := v.(string)
-	//					return fmt.Sprintf("%s 원", price)
-	//				},
-	//			},
-	//			{
-	//				Field: "SalesCount1",
-	//				Title: "건수",
-	//			},
-	//			{
-	//				Field: "WorkDayCount1",
-	//				Title: "근무일수",
-	//			},
-	//		},
-	//	},
-	//	{
-	//		Title: "21년 01월",
-	//		Children: []utils.ColumnType{
-	//			{
-	//				Field: "SalesAmount2",
-	//				Title: "금액",
-	//				Render: func(v interface{}) interface{} {
-	//					price := v.(string)
-	//					return fmt.Sprintf("%s 원", price)
-	//				},
-	//			},
-	//			{
-	//				Field: "SalesCount2",
-	//				Title: "건수",
-	//			},
-	//			{
-	//				Field: "WorkDayCount2",
-	//				Title: "근무일수",
-	//			},
-	//		},
-	//	},
-	//}
-
 	columns := []utils.ColumnType{
 		{
-			Title: "헤더1",
+			Field: "BusinessID",
+			Title: "사업자명",
 		},
 		{
-			Title: "헤더2",
+			Field: "Name",
+			Title: "기사",
 		},
 		{
-			Title: "헤더3",
+			Field: "CallAppType",
+			Title: "영업구분",
+		},
+		{
+			Title: "합계",
 			Children: []utils.ColumnType{
 				{
-					Title: "헤더3-1",
-				},
-				{
-					Title: "헤더3-2",
-					Children: []utils.ColumnType{
-						{
-							Title: "헤더3-2-1",
-						},
-						{
-							Title: "헤더3-2-2",
-						},
+					Field: "TotalSalesAmount",
+					Title: "금액",
+					Render: func(v interface{}) interface{} {
+						price := v.(string)
+						if len(price) < 1 {
+							price = "0"
+						}
+
+						return price
 					},
 				},
 				{
-					Title: "헤더3-3",
+					Field: "TotalSalesCount",
+					Title: "건수",
+				},
+			},
+		},
+		{
+			Title: "20년 12월",
+			Children: []utils.ColumnType{
+				{
+					Field: "SalesAmount1",
+					Title: "금액",
+					Render: func(v interface{}) interface{} {
+						price := v.(string)
+						if len(price) < 1 {
+							price = "0"
+						}
+
+						return price
+					},
+				},
+				{
+					Field: "SalesCount1",
+					Title: "건수",
+				},
+				{
+					Field: "WorkDayCount1",
+					Title: "근무일수",
+					Render: func(v interface{}) interface{} {
+						return fmt.Sprintf("%s일", v.(string))
+					},
+				},
+			},
+		},
+		{
+			Title: "21년 01월",
+			Children: []utils.ColumnType{
+				{
+					Field: "SalesAmount2",
+					Title: "금액",
+					Render: func(v interface{}) interface{} {
+						price := v.(string)
+						if len(price) < 1 {
+							price = "0"
+						}
+
+						return price
+					},
+				},
+				{
+					Field: "SalesCount2",
+					Title: "건수",
+				},
+				{
+					Field: "WorkDayCount2",
+					Title: "근무일수",
+					Render: func(v interface{}) interface{} {
+						return fmt.Sprintf("%s일", v.(string))
+					},
 				},
 			},
 		},
