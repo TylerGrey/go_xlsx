@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize/v2"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 	"xlsx_test/utils"
@@ -12,17 +15,20 @@ import (
 
 func main() {
 	// File
-	f := PrepareAndReturnExcel()
-
-	now := time.Now()
-	if err := f.SaveAs("Test.xlsx"); err != nil {
-		return
-	}
-	fmt.Println("SaveAs", time.Since(now))
+	//f := PrepareAndReturnExcel()
+	//
+	//now := time.Now()
+	//if err := f.SaveAs("Test.xlsx"); err != nil {
+	//	return
+	//}
+	//fmt.Println("SaveAs", time.Since(now))
 
 	// HTTP
 	//http.HandleFunc("/xlsx", downloadExcel)
 	//http.ListenAndServe(":3000", nil)
+
+	// Uncommon case
+	PrepareUncommonCase().SaveAs("merge.xlsx")
 }
 
 func PrepareAndReturnExcel() *excelize.File {
@@ -64,4 +70,126 @@ func downloadExcel(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	file.Write(w)
 	fmt.Println("File write", time.Since(now))
+}
+
+func PrepareUncommonCase() *excelize.File {
+	var datasource []utils.SalesStatisticalAnalysisItem
+
+	data, _ := os.Open("taxi.json")
+
+	byteJson, _ := ioutil.ReadAll(data)
+	json.Unmarshal(byteJson, &datasource)
+
+	//columns := []utils.ColumnType{
+	//	{
+	//		Field: "BusinessID",
+	//		Title: "사업자명",
+	//	},
+	//	{
+	//		Field: "Name",
+	//		Title: "기사",
+	//	},
+	//	{
+	//		Field: "Name",
+	//		Title: "영업구분",
+	//	},
+	//	{
+	//		Title: "합계",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "TotalSalesAmount",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					return fmt.Sprintf("%s 원", price)
+	//				},
+	//			},
+	//			{
+	//				Field: "TotalSalesCount",
+	//				Title: "건수",
+	//			},
+	//		},
+	//	},
+	//	{
+	//		Title: "20년 12월",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "SalesAmount1",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					return fmt.Sprintf("%s 원", price)
+	//				},
+	//			},
+	//			{
+	//				Field: "SalesCount1",
+	//				Title: "건수",
+	//			},
+	//			{
+	//				Field: "WorkDayCount1",
+	//				Title: "근무일수",
+	//			},
+	//		},
+	//	},
+	//	{
+	//		Title: "21년 01월",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "SalesAmount2",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					return fmt.Sprintf("%s 원", price)
+	//				},
+	//			},
+	//			{
+	//				Field: "SalesCount2",
+	//				Title: "건수",
+	//			},
+	//			{
+	//				Field: "WorkDayCount2",
+	//				Title: "근무일수",
+	//			},
+	//		},
+	//	},
+	//}
+
+	columns := []utils.ColumnType{
+		{
+			Title: "헤더1",
+		},
+		{
+			Title: "헤더2",
+		},
+		{
+			Title: "헤더3",
+			Children: []utils.ColumnType{
+				{
+					Title: "헤더3-1",
+				},
+				{
+					Title: "헤더3-2",
+					Children: []utils.ColumnType{
+						{
+							Title: "헤더3-2-1",
+						},
+						{
+							Title: "헤더3-2-2",
+						},
+					},
+				},
+				{
+					Title: "헤더3-3",
+				},
+			},
+		},
+	}
+
+	f, _ := utils.
+		NewExcel().
+		SetDataSource(datasource).
+		SetColumns(columns).
+		RenderAutoMerging()
+
+	return f
 }

@@ -18,8 +18,11 @@ const (
 )
 
 type ColumnType struct {
-	Field string
-	Title string
+	Field    string
+	Title    string
+	Children []ColumnType
+	// Render value 컨버팅 용
+	Render func(v interface{}) interface{}
 }
 
 type target struct {
@@ -70,11 +73,11 @@ func (e *Excel) Render() (*excelize.File, error) {
 	f := excelize.NewFile()
 	f.SetSheetName(DefaultSheetName, e.sheet)
 	sw, err := f.NewStreamWriter(e.sheet)
-
-	swWrapper := streamWriter{sw}
 	if err != nil {
 		return nil, err
 	}
+
+	swWrapper := streamWriter{sw}
 
 	if e.columns == nil {
 		e.columns = e.makeDefaultColumns()
@@ -92,6 +95,102 @@ func (e *Excel) Render() (*excelize.File, error) {
 	if err = swWrapper.Flush(); err != nil {
 		return nil, err
 	}
+
+	return f, nil
+}
+
+func getWidth(c ColumnType) int {
+	width := 0
+
+	if c.Children == nil {
+		return 1
+	}
+
+	for _, child := range c.Children {
+		width += getWidth(child)
+	}
+
+	return width
+}
+
+func (e *Excel) RenderAutoMerging() (*excelize.File, error) {
+	if e.datasource == nil || reflect.TypeOf(e.datasource).Kind() != reflect.Slice {
+		return nil, errors.New("invalid datasource")
+	}
+
+	f := excelize.NewFile()
+	f.SetSheetName(DefaultSheetName, e.sheet)
+
+	// header
+	var leafColumnsSize int
+	for _, column := range e.columns {
+		leafColumnsSize += getWidth(column)
+	}
+
+	// leafColumns 최종 columns
+	leafColumns := e.columns
+	var headerHeight int
+
+	for {
+		var newColumns []ColumnType
+		var forcePosition int
+
+		for i, column := range leafColumns {
+			startColumnNumber := i + forcePosition + 1
+			startColumnName, _ := excelize.ColumnNumberToName(startColumnNumber)
+			startCell := fmt.Sprintf("%s%d", startColumnName, e.startRow+headerHeight)
+
+			// Header 2번째 라인부터 vertical merging
+			if headerHeight > 0 {
+				prevCell := fmt.Sprintf("%s%d", startColumnName, e.startRow+headerHeight-1)
+				prevCellValue, _ := f.GetCellValue(e.sheet, prevCell)
+
+				if column.Title == prevCellValue {
+					err := f.MergeCell(e.sheet, prevCell, startCell)
+					if err != nil {
+						return nil, err
+					}
+
+					newColumns = append(newColumns, column)
+					continue
+				}
+			}
+
+			if column.Children != nil {
+				columnWidth := getWidth(column) - 1
+				forcePosition += columnWidth
+
+				mergeColumnName, _ := excelize.ColumnNumberToName(startColumnNumber + columnWidth)
+
+				err := f.SetCellValue(e.sheet, startCell, column.Title)
+				if err != nil {
+					return nil, err
+				}
+				// horizontal merging
+				err = f.MergeCell(e.sheet, startCell, fmt.Sprintf("%s%d", mergeColumnName, e.startRow+headerHeight))
+				if err != nil {
+					return nil, err
+				}
+
+				newColumns = append(newColumns, column.Children...)
+			} else {
+				err := f.SetCellValue(e.sheet, startCell, column.Title)
+				if err != nil {
+					return nil, err
+				}
+				newColumns = append(newColumns, column)
+			}
+		}
+
+		if len(leafColumns) == leafColumnsSize {
+			break
+		}
+
+		leafColumns = newColumns
+		headerHeight++
+	}
+
+	// body
 
 	return f, nil
 }
