@@ -18,9 +18,10 @@ const (
 )
 
 type ColumnType struct {
-	Field    string
-	Title    string
-	Children []ColumnType
+	Field       string
+	Title       string
+	AutoMerging bool
+	Children    []ColumnType
 	// Render value 컨버팅 용
 	Render func(v interface{}) interface{}
 }
@@ -162,20 +163,17 @@ func (e *Excel) RenderAutoMerging() (*excelize.File, error) {
 
 				mergeColumnName, _ := excelize.ColumnNumberToName(startColumnNumber + columnWidth)
 
-				err := f.SetCellValue(e.sheet, startCell, column.Title)
-				if err != nil {
+				if err := f.SetCellValue(e.sheet, startCell, column.Title); err != nil {
 					return nil, err
 				}
 				// horizontal merging
-				err = f.MergeCell(e.sheet, startCell, fmt.Sprintf("%s%d", mergeColumnName, e.startRow+headerHeight))
-				if err != nil {
+				if err := f.MergeCell(e.sheet, startCell, fmt.Sprintf("%s%d", mergeColumnName, e.startRow+headerHeight)); err != nil {
 					return nil, err
 				}
 
 				newColumns = append(newColumns, column.Children...)
 			} else {
-				err := f.SetCellValue(e.sheet, startCell, column.Title)
-				if err != nil {
+				if err := f.SetCellValue(e.sheet, startCell, column.Title); err != nil {
 					return nil, err
 				}
 				newColumns = append(newColumns, column)
@@ -193,17 +191,36 @@ func (e *Excel) RenderAutoMerging() (*excelize.File, error) {
 	// body
 	valueOf := reflect.ValueOf(e.datasource)
 	for i := 0; i < valueOf.Len(); i++ {
+		isMergedRow := true
+		currentRow := e.startRow + headerHeight + i + 1
+
 		for j, column := range leafColumns {
 			columnName, _ := excelize.ColumnNumberToName(j + 1)
+			currentCell := fmt.Sprintf("%s%d", columnName, currentRow)
 
 			value := valueOf.Index(i).FieldByName(column.Field).Interface()
 			if column.Render != nil {
 				value = column.Render(value)
 			}
 
-			err := f.SetCellValue(e.sheet, fmt.Sprintf("%s%d", columnName, e.startRow+headerHeight+i+1), value)
-			if err != nil {
-				return nil, err
+			if i > 0 && column.AutoMerging {
+				prevCell := fmt.Sprintf("%s%d", columnName, currentRow-1)
+				prevCellValue, _ := f.GetCellValue(e.sheet, prevCell)
+
+				if prevCellValue == value && isMergedRow {
+					if err := f.MergeCell(e.sheet, prevCell, currentCell); err != nil {
+						return nil, err
+					}
+				} else {
+					isMergedRow = false
+					if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
+						return nil, err
+					}
+				}
+			} else {
+				if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

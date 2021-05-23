@@ -75,19 +75,115 @@ func downloadExcel(w http.ResponseWriter, r *http.Request) {
 func PrepareUncommonCase() *excelize.File {
 	var datasource []utils.SalesStatisticalAnalysisItem
 
-	data, _ := os.Open("driver.json")
+	//driverData, _ := os.Open("driver.json")
+	//byteJson, _ := ioutil.ReadAll(driverData)
+	//json.Unmarshal(byteJson, &datasource)
+	//
+	//columns := []utils.ColumnType{
+	//	{
+	//		Field: "BusinessID",
+	//		Title: "사업자명",
+	//		AutoMerging: true,
+	//	},
+	//	{
+	//		Field: "Name",
+	//		Title: "기사",
+	//		AutoMerging: true,
+	//	},
+	//	{
+	//		Field: "CallAppType",
+	//		Title: "영업구분",
+	//	},
+	//	{
+	//		Title: "합계",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "TotalSalesAmount",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					if len(price) < 1 {
+	//						price = "0"
+	//					}
+	//
+	//					return price
+	//				},
+	//			},
+	//			{
+	//				Field: "TotalSalesCount",
+	//				Title: "건수",
+	//			},
+	//		},
+	//	},
+	//	{
+	//		Title: "20년 12월",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "SalesAmount1",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					if len(price) < 1 {
+	//						price = "0"
+	//					}
+	//
+	//					return price
+	//				},
+	//			},
+	//			{
+	//				Field: "SalesCount1",
+	//				Title: "건수",
+	//			},
+	//			{
+	//				Field: "WorkDayCount1",
+	//				Title: "근무일수",
+	//				AutoMerging: true,
+	//				Render: func(v interface{}) interface{} {
+	//					return fmt.Sprintf("%s일", v.(string))
+	//				},
+	//			},
+	//		},
+	//	},
+	//	{
+	//		Title: "21년 01월",
+	//		Children: []utils.ColumnType{
+	//			{
+	//				Field: "SalesAmount2",
+	//				Title: "금액",
+	//				Render: func(v interface{}) interface{} {
+	//					price := v.(string)
+	//					if len(price) < 1 {
+	//						price = "0"
+	//					}
+	//
+	//					return price
+	//				},
+	//			},
+	//			{
+	//				Field: "SalesCount2",
+	//				Title: "건수",
+	//			},
+	//			{
+	//				Field: "WorkDayCount2",
+	//				Title: "근무일수",
+	//				AutoMerging: true,
+	//				Render: func(v interface{}) interface{} {
+	//					return fmt.Sprintf("%s일", v.(string))
+	//				},
+	//			},
+	//		},
+	//	},
+	//}
 
-	byteJson, _ := ioutil.ReadAll(data)
+	taxiData, _ := os.Open("taxi.json")
+	byteJson, _ := ioutil.ReadAll(taxiData)
 	json.Unmarshal(byteJson, &datasource)
 
 	columns := []utils.ColumnType{
 		{
-			Field: "BusinessID",
-			Title: "사업자명",
-		},
-		{
-			Field: "Name",
-			Title: "기사",
+			Field:       "BusinessID",
+			Title:       "사업자명",
+			AutoMerging: true,
 		},
 		{
 			Field: "CallAppType",
@@ -133,13 +229,6 @@ func PrepareUncommonCase() *excelize.File {
 					Field: "SalesCount1",
 					Title: "건수",
 				},
-				{
-					Field: "WorkDayCount1",
-					Title: "근무일수",
-					Render: func(v interface{}) interface{} {
-						return fmt.Sprintf("%s일", v.(string))
-					},
-				},
 			},
 		},
 		{
@@ -161,13 +250,6 @@ func PrepareUncommonCase() *excelize.File {
 					Field: "SalesCount2",
 					Title: "건수",
 				},
-				{
-					Field: "WorkDayCount2",
-					Title: "근무일수",
-					Render: func(v interface{}) interface{} {
-						return fmt.Sprintf("%s일", v.(string))
-					},
-				},
 			},
 		},
 	}
@@ -177,6 +259,11 @@ func PrepareUncommonCase() *excelize.File {
 		SetDataSource(datasource).
 		SetColumns(columns).
 		RenderAutoMerging()
+
+	style, _ := f.NewStyle("{\"border\":[{\"type\":\"left\",\"color\":\"000000\",\"style\":1},{\"type\":\"right\",\"color\":\"000000\",\"style\":1},{\"type\":\"top\",\"color\":\"000000\",\"style\":1},{\"type\":\"bottom\",\"color\":\"000000\",\"style\":1}]}")
+	f.SetCellStyle("Sheet1", "A1", "H17", style)
+	style2, _ := f.NewConditionalStyle("{\"font\":{\"bold\":true}}")
+	f.SetCellStyle("Sheet1", "A1", "H17", style2)
 
 	return f
 }
