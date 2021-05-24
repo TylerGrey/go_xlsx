@@ -51,7 +51,6 @@ func PrepareAndReturnExcel() *excelize.File {
 		SetSheet("Test Sheet").
 		SetStartRow(2).
 		SetDataSource(datasource).
-		SetAutoMerge(true).
 		Render()
 
 	return f

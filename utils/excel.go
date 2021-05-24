@@ -69,6 +69,9 @@ func (e *Excel) SetSheet(sheet string) *Excel {
 
 // SetStartRow 렌더링 될 시작 행 위치 설정
 func (e *Excel) SetStartRow(startRow int) *Excel {
+	if startRow < 1 {
+		startRow = 1
+	}
 	e.startRow = startRow
 	return e
 }
