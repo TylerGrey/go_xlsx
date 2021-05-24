@@ -21,16 +21,7 @@
       "style": 1
     }
   ],
-  "font": {
-    "bold": true
-  },
-  "fill": {
-    "type": "pattern",
-    "color": ["cccccc"],
-    "pattern": 1
-  },
   "alignment": {
-    "horizontal": "center",
     "vertical": "center"
   }
 }

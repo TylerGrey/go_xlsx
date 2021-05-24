@@ -15,27 +15,27 @@ import (
 
 func main() {
 	// File
-	//f := PrepareAndReturnExcel()
-	//
-	//now := time.Now()
-	//if err := f.SaveAs("Test.xlsx"); err != nil {
-	//	return
-	//}
-	//fmt.Println("SaveAs", time.Since(now))
+	f := PrepareAndReturnExcel()
+
+	now := time.Now()
+	if err := f.SaveAs("Test.xlsx"); err != nil {
+		return
+	}
+	fmt.Println("SaveAs", time.Since(now))
 
 	// HTTP
 	//http.HandleFunc("/xlsx", downloadExcel)
 	//http.ListenAndServe(":3000", nil)
 
 	// Uncommon case
-	PrepareUncommonCase().SaveAs("merge.xlsx")
+	//PrepareUncommonCase().SaveAs("merge.xlsx")
 }
 
 func PrepareAndReturnExcel() *excelize.File {
 	now := time.Now()
-	var datasource []utils.UserInfo
+	var datasource []*utils.UserInfo
 	for i := 0; i < 1_000; i++ {
-		datasource = append(datasource, utils.UserInfo{
+		datasource = append(datasource, &utils.UserInfo{
 			ID:             strconv.Itoa(i),
 			Name:           fmt.Sprintf("Name%d", i),
 			MobileNumber:   fmt.Sprintf("010-%4d-%4d", rand.Intn(9999), rand.Intn(9999)),
@@ -51,6 +51,7 @@ func PrepareAndReturnExcel() *excelize.File {
 		SetSheet("Test Sheet").
 		SetStartRow(2).
 		SetDataSource(datasource).
+		SetAutoMerge(true).
 		Render()
 
 	return f
@@ -73,7 +74,7 @@ func downloadExcel(w http.ResponseWriter, r *http.Request) {
 }
 
 func PrepareUncommonCase() *excelize.File {
-	var datasource []utils.SalesStatisticalAnalysisItem
+	var datasource []*utils.SalesStatisticalAnalysisItem
 
 	//driverData, _ := os.Open("driver.json")
 	//byteJson, _ := ioutil.ReadAll(driverData)
@@ -82,24 +83,24 @@ func PrepareUncommonCase() *excelize.File {
 	//columns := []utils.ColumnType{
 	//	{
 	//		Field: "BusinessID",
-	//		Title: "사업자명",
-	//		AutoMerging: true,
+	//		Name: "사업자명",
+	//		MergeColumn: true,
 	//	},
 	//	{
 	//		Field: "Name",
-	//		Title: "기사",
-	//		AutoMerging: true,
+	//		Name: "기사",
+	//		MergeColumn: true,
 	//	},
 	//	{
 	//		Field: "CallAppType",
-	//		Title: "영업구분",
+	//		Name: "영업구분",
 	//	},
 	//	{
-	//		Title: "합계",
+	//		Name: "합계",
 	//		Children: []utils.ColumnType{
 	//			{
 	//				Field: "TotalSalesAmount",
-	//				Title: "금액",
+	//				Name: "금액",
 	//				Render: func(v interface{}) interface{} {
 	//					price := v.(string)
 	//					if len(price) < 1 {
@@ -111,16 +112,16 @@ func PrepareUncommonCase() *excelize.File {
 	//			},
 	//			{
 	//				Field: "TotalSalesCount",
-	//				Title: "건수",
+	//				Name: "건수",
 	//			},
 	//		},
 	//	},
 	//	{
-	//		Title: "20년 12월",
+	//		Name: "20년 12월",
 	//		Children: []utils.ColumnType{
 	//			{
 	//				Field: "SalesAmount1",
-	//				Title: "금액",
+	//				Name: "금액",
 	//				Render: func(v interface{}) interface{} {
 	//					price := v.(string)
 	//					if len(price) < 1 {
@@ -132,12 +133,12 @@ func PrepareUncommonCase() *excelize.File {
 	//			},
 	//			{
 	//				Field: "SalesCount1",
-	//				Title: "건수",
+	//				Name: "건수",
 	//			},
 	//			{
 	//				Field: "WorkDayCount1",
-	//				Title: "근무일수",
-	//				AutoMerging: true,
+	//				Name: "근무일수",
+	//				MergeColumn: true,
 	//				Render: func(v interface{}) interface{} {
 	//					return fmt.Sprintf("%s일", v.(string))
 	//				},
@@ -145,11 +146,11 @@ func PrepareUncommonCase() *excelize.File {
 	//		},
 	//	},
 	//	{
-	//		Title: "21년 01월",
+	//		Name: "21년 01월",
 	//		Children: []utils.ColumnType{
 	//			{
 	//				Field: "SalesAmount2",
-	//				Title: "금액",
+	//				Name: "금액",
 	//				Render: func(v interface{}) interface{} {
 	//					price := v.(string)
 	//					if len(price) < 1 {
@@ -161,12 +162,12 @@ func PrepareUncommonCase() *excelize.File {
 	//			},
 	//			{
 	//				Field: "SalesCount2",
-	//				Title: "건수",
+	//				Name: "건수",
 	//			},
 	//			{
 	//				Field: "WorkDayCount2",
-	//				Title: "근무일수",
-	//				AutoMerging: true,
+	//				Name: "근무일수",
+	//				MergeColumn: true,
 	//				Render: func(v interface{}) interface{} {
 	//					return fmt.Sprintf("%s일", v.(string))
 	//				},
@@ -182,19 +183,19 @@ func PrepareUncommonCase() *excelize.File {
 	columns := []utils.ColumnType{
 		{
 			Field:       "BusinessID",
-			Title:       "사업자명",
-			AutoMerging: true,
+			Name:        "사업자명",
+			MergeColumn: true,
 		},
 		{
 			Field: "CallAppType",
-			Title: "영업구분",
+			Name:  "영업구분",
 		},
 		{
-			Title: "합계",
+			Name: "합계",
 			Children: []utils.ColumnType{
 				{
 					Field: "TotalSalesAmount",
-					Title: "금액",
+					Name:  "금액",
 					Render: func(v interface{}) interface{} {
 						price := v.(string)
 						if len(price) < 1 {
@@ -206,16 +207,16 @@ func PrepareUncommonCase() *excelize.File {
 				},
 				{
 					Field: "TotalSalesCount",
-					Title: "건수",
+					Name:  "건수",
 				},
 			},
 		},
 		{
-			Title: "20년 12월",
+			Name: "20년 12월",
 			Children: []utils.ColumnType{
 				{
 					Field: "SalesAmount1",
-					Title: "금액",
+					Name:  "금액",
 					Render: func(v interface{}) interface{} {
 						price := v.(string)
 						if len(price) < 1 {
@@ -227,16 +228,16 @@ func PrepareUncommonCase() *excelize.File {
 				},
 				{
 					Field: "SalesCount1",
-					Title: "건수",
+					Name:  "건수",
 				},
 			},
 		},
 		{
-			Title: "21년 01월",
+			Name: "21년 01월",
 			Children: []utils.ColumnType{
 				{
 					Field: "SalesAmount2",
-					Title: "금액",
+					Name:  "금액",
 					Render: func(v interface{}) interface{} {
 						price := v.(string)
 						if len(price) < 1 {
@@ -248,7 +249,7 @@ func PrepareUncommonCase() *excelize.File {
 				},
 				{
 					Field: "SalesCount2",
-					Title: "건수",
+					Name:  "건수",
 				},
 			},
 		},
@@ -256,14 +257,11 @@ func PrepareUncommonCase() *excelize.File {
 
 	f, _ := utils.
 		NewExcel().
+		SetStartRow(2).
 		SetDataSource(datasource).
 		SetColumns(columns).
-		RenderAutoMerging()
-
-	style, _ := f.NewStyle("{\"border\":[{\"type\":\"left\",\"color\":\"000000\",\"style\":1},{\"type\":\"right\",\"color\":\"000000\",\"style\":1},{\"type\":\"top\",\"color\":\"000000\",\"style\":1},{\"type\":\"bottom\",\"color\":\"000000\",\"style\":1}]}")
-	f.SetCellStyle("Sheet1", "A1", "H17", style)
-	style2, _ := f.NewConditionalStyle("{\"font\":{\"bold\":true}}")
-	f.SetCellStyle("Sheet1", "A1", "H17", style2)
+		SetAutoMerge(true).
+		Render()
 
 	return f
 }
