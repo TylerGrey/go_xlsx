@@ -344,27 +344,27 @@ func (f *file) drawBody(leafColumns []ColumnType, headerHeight int, e *Excel) er
 			columnName, _ := excelize.ColumnNumberToName(j + 1)
 			currentCell := fmt.Sprintf("%s%d", columnName, currentRow)
 
-			value := valueOf.Index(i)
-			if value.Kind() == reflect.Ptr {
-				value = value.Elem()
+			valueOfData := valueOf.Index(i)
+			if valueOfData.Kind() == reflect.Ptr {
+				valueOfData = valueOfData.Elem()
 			}
 
-			currentValue := value.FieldByName(column.Field).Interface()
+			value := valueOfData.FieldByName(column.Field).Interface()
 			if column.Render != nil {
-				currentValue = column.Render(currentValue)
+				value = column.Render(value)
 			}
 
 			if i > 0 && column.MergeColumn {
 				prevCell := fmt.Sprintf("%s%d", columnName, currentRow-1)
 				prevCellValue, _ := f.GetCellValue(e.sheet, prevCell)
 
-				if prevCellValue == currentValue && isMergedRow {
+				if prevCellValue == value && isMergedRow {
 					if err := f.MergeCell(e.sheet, prevCell, currentCell); err != nil {
 						return err
 					}
 				} else {
 					isMergedRow = false
-					if err := f.SetCellValue(e.sheet, currentCell, currentValue); err != nil {
+					if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
 						return err
 					}
 					if err := f.SetCellStyle(e.sheet, currentCell, currentCell, styleId); err != nil {
@@ -372,7 +372,7 @@ func (f *file) drawBody(leafColumns []ColumnType, headerHeight int, e *Excel) er
 					}
 				}
 			} else {
-				if err := f.SetCellValue(e.sheet, currentCell, currentValue); err != nil {
+				if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
 					return err
 				}
 				if err := f.SetCellStyle(e.sheet, currentCell, currentCell, styleId); err != nil {
@@ -427,15 +427,20 @@ func (f *streamWriter) drawBody(e *Excel) error {
 		var rows []interface{}
 
 		for j := 0; j < len(e.columns); j++ {
-			value := valueOf.Index(i)
+			valueOfData := valueOf.Index(i)
 
-			if value.Kind() == reflect.Ptr {
-				value = value.Elem()
+			if valueOfData.Kind() == reflect.Ptr {
+				valueOfData = valueOfData.Elem()
+			}
+
+			currentValue := valueOfData.FieldByName(e.columns[j].Field).Interface()
+			if e.columns[j].Render != nil {
+				currentValue = e.columns[j].Render(currentValue)
 			}
 
 			rows = append(rows, excelize.Cell{
 				StyleID: styleId,
-				Value:   value.FieldByName(e.columns[j].Field),
+				Value:   currentValue,
 			})
 		}
 
