@@ -217,8 +217,12 @@ func (e *Excel) targetFieldsAndTags() (targets []target) {
 		if len(renderTag) > 0 {
 			render = func(v interface{}) interface{} {
 				method := reflect.New(elem).MethodByName(renderTag)
-				out := method.Call([]reflect.Value{reflect.ValueOf(v)})
-				return out[0]
+				if method.IsValid() {
+					out := method.Call([]reflect.Value{reflect.ValueOf(v)})
+					return out[0]
+				}
+
+				return v
 			}
 		}
 
