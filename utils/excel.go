@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
-	"time"
 )
 
 const (
@@ -18,8 +17,9 @@ const (
 
 	SignOmit = "-"
 
-	TagColumnName  = "col_name"
-	TagColumnOrder = "col_order"
+	TagColumnName   = "col_name"
+	TagColumnOrder  = "col_order"
+	TagColumnRender = "col_render"
 )
 
 // ColumnType 컬럼 정보
@@ -38,9 +38,10 @@ type ColumnType struct {
 
 // target 컬럼 자동 생성 시, 렌더링 될 컬럼 정보
 type target struct {
-	field string
-	tag   string
-	order int
+	field  string
+	tag    string
+	order  int
+	render func(v interface{}) interface{}
 }
 
 // Excel ...
@@ -159,9 +160,6 @@ func (e *Excel) calcWidth(c ColumnType) int {
 
 // makeDefaultColumns 데이터 모델의 tag를 바탕으로 default column 생성
 func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
-	now := time.Now()
-	defer timeTrack(now, "makeDefaultColumns")
-
 	targets := e.targetFieldsAndTags()
 
 	for i := 0; i < len(targets); i++ {
@@ -171,8 +169,9 @@ func (e *Excel) makeDefaultColumns() (columnTypes []ColumnType) {
 		}
 
 		columnTypes = append(columnTypes, ColumnType{
-			Field: targets[i].field,
-			Name:  title,
+			Field:  targets[i].field,
+			Name:   title,
+			Render: targets[i].render,
 		})
 	}
 
@@ -197,9 +196,6 @@ func (e *Excel) newStyleBody() excelize.Style {
 
 // targetFieldsAndTags 컬럼 자동 생성 시, tag 기반으로 렌더링 될 컬럼 정보 생성
 func (e *Excel) targetFieldsAndTags() (targets []target) {
-	now := time.Now()
-	defer timeTrack(now, "targetFieldsAndTags")
-
 	elem := reflect.TypeOf(e.datasource).Elem()
 
 	if elem.Kind() == reflect.Ptr {
@@ -216,11 +212,22 @@ func (e *Excel) targetFieldsAndTags() (targets []target) {
 			order = elem.NumField()
 		}
 
+		renderTag := field.Tag.Get(TagColumnRender)
+		var render func(v interface{}) interface{}
+		if len(renderTag) > 0 {
+			render = func(v interface{}) interface{} {
+				method := reflect.New(elem).MethodByName(renderTag)
+				out := method.Call([]reflect.Value{reflect.ValueOf(v)})
+				return out[0]
+			}
+		}
+
 		if tag != SignOmit {
 			targets = append(targets, target{
-				field: field.Name,
-				tag:   tag,
-				order: order,
+				field:  field.Name,
+				tag:    tag,
+				order:  order,
+				render: render,
 			})
 		}
 	}
@@ -240,9 +247,6 @@ type file struct {
 
 // drawHeader 헤더 렌더링
 func (f *file) drawHeader(e *Excel) ([]ColumnType, int, error) {
-	now := time.Now()
-	defer timeTrack(now, "drawHeader")
-
 	var leafColumnsSize int
 	for _, column := range e.columns {
 		leafColumnsSize += e.calcWidth(column)
@@ -329,9 +333,6 @@ func (f *file) drawHeader(e *Excel) ([]ColumnType, int, error) {
 
 // drawBody Body 렌더링
 func (f *file) drawBody(leafColumns []ColumnType, headerHeight int, e *Excel) error {
-	now := time.Now()
-	defer timeTrack(now, "drawBody")
-
 	style := e.newStyleBody()
 	styleId, _ := f.NewStyle(&style)
 
@@ -390,9 +391,6 @@ type streamWriter struct {
 
 // drawHeader Header 렌더링
 func (f *streamWriter) drawHeader(e *Excel) error {
-	now := time.Now()
-	defer timeTrack(now, "drawHeader")
-
 	style := e.newStyleHeader()
 	styleId, _ := f.File.NewStyle(&style)
 
@@ -413,9 +411,6 @@ func (f *streamWriter) drawHeader(e *Excel) error {
 
 // drawBody Body 렌더링
 func (f *streamWriter) drawBody(e *Excel) error {
-	now := time.Now()
-	defer timeTrack(now, "drawBody")
-
 	style := e.newStyleBody()
 	styleId, _ := f.File.NewStyle(&style)
 
@@ -448,9 +443,4 @@ func (f *streamWriter) drawBody(e *Excel) error {
 	}
 
 	return nil
-}
-
-func timeTrack(start time.Time, method string) {
-	elapsed := time.Since(start)
-	fmt.Printf("%s %s\n", method, elapsed)
 }

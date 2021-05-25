@@ -35,19 +35,17 @@ func main() {
 }
 
 func CommonCase() *excelize.File {
-	now := time.Now()
 	var datasource []*utils.UserInfo
 	for i := 0; i < 1_000; i++ {
 		datasource = append(datasource, &utils.UserInfo{
 			ID:             strconv.Itoa(i),
 			Name:           fmt.Sprintf("Name%d", i),
 			MobileNumber:   fmt.Sprintf("010-%4d-%4d", rand.Intn(9999), rand.Intn(9999)),
-			EmployeeRegNum: strconv.Itoa(i),
+			EmployeeRegNum: i,
 			TeamName:       fmt.Sprintf("Team %d", rand.Int()),
 			CompanyEmail:   fmt.Sprintf("%d@gmail.com", rand.Int()),
 		})
 	}
-	fmt.Println("Generate datasource", time.Since(now))
 
 	f, _ := utils.
 		NewExcel().

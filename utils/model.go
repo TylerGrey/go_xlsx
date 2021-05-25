@@ -1,12 +1,40 @@
 package utils
 
+import (
+	"encoding/base64"
+	"strconv"
+)
+
 type UserInfo struct {
-	ID             string `json:"ID" col_name:"ID"`
-	Name           string `json:"name" col_name:"Name" col_order:"4"`
+	ID             string `json:"ID" col_name:"ID" col_render:"ConvertBase64"`
+	Name           string `json:"name" col_name:"Name" col_order:"4" col_render:"Masking"`
 	MobileNumber   string `json:"mobileNumber" col_name:"MobileNumber" col_order:"1"`
-	EmployeeRegNum string `json:"employeeRegNum" col_name:"EmployeeRegNum"`
+	EmployeeRegNum int    `json:"employeeRegNum" col_name:"EmployeeRegNum" col_render:"Masking"`
 	TeamName       string `json:"teamName" col_name:"TeamName" col_order:"3"`
 	CompanyEmail   string `json:"companyEmail" col_name:"CompanyEmail" col_order:"2"`
+}
+
+func (*UserInfo) ConvertBase64(id string) string {
+	return base64.StdEncoding.EncodeToString([]byte(id))
+}
+
+func (*UserInfo) Masking(value interface{}) string {
+	var rs []rune
+
+	switch v := value.(type) {
+	case string:
+		rs = []rune(v)
+	case int:
+		conv := strconv.Itoa(v)
+		rs = []rune(conv)
+	default:
+		return ""
+	}
+
+	for i := len(rs) - 1; i > 0; i-- {
+		rs[i] = '*'
+	}
+	return string(rs)
 }
 
 type SalesStatisticalAnalysisItem struct {
