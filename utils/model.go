@@ -1,18 +1,5 @@
 package utils
 
-type TestType struct {
-	A string `col_name:"Col A"`
-	B string `col_name:"-"`
-	C string `col_name:"Col B"`
-	D string
-	E string `col_name:"Col E"`
-	F string `col_name:"Col F"`
-	G string `col_name:"Col G"`
-	H string `col_name:"Col H"`
-	I string `col_name:"Col I"`
-	J string `col_name:"Col J"`
-}
-
 type UserInfo struct {
 	ID             string `json:"ID" col_name:"ID"`
 	Name           string `json:"name" col_name:"Name" col_order:"4"`
@@ -126,4 +113,24 @@ type SalesStatisticalAnalysisItem struct {
 	WorkDayCount29   string `json:"workDayCount29"`   // 근무일수
 	WorkDayCount30   string `json:"workDayCount30"`   // 근무일수
 	WorkDayCount31   string `json:"workDayCount31"`   // 근무일수
+}
+
+type TaxiDriverTimeAndAttendanceItem struct {
+	ID                 string `json:"ID"`
+	BusinessID         string `json:"businessID"`
+	No                 string `json:"no"`                 // 레코드 Row number
+	RowSpan            string `json:"rowSpan"`            // 해당 의 record수
+	LicensePlateNumber string `json:"licensePlateNumber"` // 차량번호
+	Name               string `json:"name"`               // 기사 이름
+	TaxiDriverID       string `json:"taxiDriverID"`       // 기사 ID
+	WorkDay            string `json:"workDay"`            // 근무일수(일)
+	WorkTime           string `json:"workTime"`           // 근로시간( 시간 분 )
+	AverageWorkTime    string `json:"avgWorkTime"`        // 평균근로시간( 시간 분 )
+	Pincode            string `json:"pincode"`            // Pincode
+	Key                string `json:"key"`
+	LogInOutType       string `json:"logInOutType"` // 로그인 아웃 타입(IN/OUT)
+	LogInOutDate       string `json:"logInOutDate"` // 로그인 아웃 시간(format: yy.mm.dd hh:mm:ss)
+	WorkDate           string `json:"workDate"`     // 근무일 (format: YYYY.mm.dd)
+	Vin                string `json:"vin"`
+	NameWithUnMasking  string `json:"nameWithUnMasking"` // masking  적용 하지 않은 이름 ( 엑셀 다운로드 용)
 }

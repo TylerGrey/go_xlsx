@@ -7,6 +7,8 @@ github.com/mohae/deepcopy
 github.com/richardlehane/mscfb
 # github.com/richardlehane/msoleps v1.0.1
 github.com/richardlehane/msoleps/types
+# github.com/rs/cors v1.7.0
+## explicit
 # github.com/xuri/efp v0.0.0-20201016154823-031c29024257
 github.com/xuri/efp
 # golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee

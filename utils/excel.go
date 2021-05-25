@@ -300,7 +300,7 @@ func (f *file) drawHeader(e *Excel) ([]ColumnType, int, error) {
 			}
 		}
 
-		if len(leafColumns) == leafColumnsSize {
+		if len(leafColumns) >= leafColumnsSize {
 			break
 		}
 
@@ -340,14 +340,14 @@ func (f *file) drawBody(leafColumns []ColumnType, headerHeight int, e *Excel) er
 		isMergedRow := true
 		currentRow := e.startRow + headerHeight + i + 1
 
+		valueOfData := valueOf.Index(i)
+		if valueOfData.Kind() == reflect.Ptr {
+			valueOfData = valueOfData.Elem()
+		}
+
 		for j, column := range leafColumns {
 			columnName, _ := excelize.ColumnNumberToName(j + 1)
 			currentCell := fmt.Sprintf("%s%d", columnName, currentRow)
-
-			valueOfData := valueOf.Index(i)
-			if valueOfData.Kind() == reflect.Ptr {
-				valueOfData = valueOfData.Elem()
-			}
 
 			value := valueOfData.FieldByName(column.Field).Interface()
 			if column.Render != nil {
@@ -367,17 +367,15 @@ func (f *file) drawBody(leafColumns []ColumnType, headerHeight int, e *Excel) er
 					if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
 						return err
 					}
-					if err := f.SetCellStyle(e.sheet, currentCell, currentCell, styleId); err != nil {
-						return err
-					}
 				}
 			} else {
 				if err := f.SetCellValue(e.sheet, currentCell, value); err != nil {
 					return err
 				}
-				if err := f.SetCellStyle(e.sheet, currentCell, currentCell, styleId); err != nil {
-					return err
-				}
+			}
+
+			if err := f.SetCellStyle(e.sheet, currentCell, currentCell, styleId); err != nil {
+				return err
 			}
 		}
 	}
