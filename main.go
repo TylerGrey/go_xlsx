@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// File Download !!
+	// File Downloa
 	if err := CommonCase().SaveAs("common1.xlsx"); err != nil {
 		return
 	}
