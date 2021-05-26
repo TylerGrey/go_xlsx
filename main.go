@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// File Download !!
+	// File Download
 	if err := CommonCase().SaveAs("common1.xlsx"); err != nil {
 		return
 	}
@@ -29,7 +29,7 @@ func main() {
 		return
 	}
 
-	// HTTP
+	// HTTP Download
 	//http.HandleFunc("/xlsx", downloadExcel)
 	//http.ListenAndServe(":3000", nil)
 }
